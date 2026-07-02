@@ -133,3 +133,73 @@ class CommandRegistry:
             "radio.nav2.set": lambda v: setattr(
                 state.radio, "nav2_freq_khz", _num(v, 0, 118000)),
         })
+
+        # --- overhead panel: boolean switches map straight onto state ------
+        bool_switches = {
+            "ovhd.elec.bat1": (state.elec, "bat1"),
+            "ovhd.elec.bat2": (state.elec, "bat2"),
+            "ovhd.elec.ext_pwr": (state.elec, "ext_pwr"),
+            "ovhd.elec.gen1": (state.elec, "gen1"),
+            "ovhd.elec.gen2": (state.elec, "gen2"),
+            "ovhd.elec.apu_gen": (state.elec, "apu_gen"),
+            "ovhd.elec.bus_tie": (state.elec, "bus_tie"),
+            "ovhd.apu.master": (state.apu, "master"),
+            "ovhd.apu.start": (state.apu, "start_pb"),
+            "ovhd.fuel.pump_l1": (state.fuel, "pump_l1"),
+            "ovhd.fuel.pump_l2": (state.fuel, "pump_l2"),
+            "ovhd.fuel.pump_c1": (state.fuel, "pump_c1"),
+            "ovhd.fuel.pump_c2": (state.fuel, "pump_c2"),
+            "ovhd.fuel.pump_r1": (state.fuel, "pump_r1"),
+            "ovhd.fuel.pump_r2": (state.fuel, "pump_r2"),
+            "ovhd.fuel.xfeed": (state.fuel, "xfeed"),
+            "ovhd.hyd.eng1_pump": (state.hyd, "eng1_pump"),
+            "ovhd.hyd.eng2_pump": (state.hyd, "eng2_pump"),
+            "ovhd.hyd.blue_elec": (state.hyd, "blue_elec_pump"),
+            "ovhd.hyd.yellow_elec": (state.hyd, "yellow_elec_pump"),
+            "ovhd.hyd.ptu": (state.hyd, "ptu_auto"),
+            "ovhd.bleed.eng1": (state.bleed, "eng1_bleed"),
+            "ovhd.bleed.eng2": (state.bleed, "eng2_bleed"),
+            "ovhd.bleed.apu": (state.bleed, "apu_bleed"),
+            "ovhd.bleed.pack1": (state.bleed, "pack1"),
+            "ovhd.bleed.pack2": (state.bleed, "pack2"),
+        }
+
+        def make_bool_handler(obj, attr):
+            def handler(v):
+                setattr(obj, attr,
+                        (not getattr(obj, attr)) if v is None else bool(v))
+            return handler
+
+        for name, (obj, attr) in bool_switches.items():
+            self._handlers[name] = make_bool_handler(obj, attr)
+
+        def ovhd_xbleed(v):
+            if v not in ("AUTO", "OPEN", "SHUT"):
+                raise CommandError("xbleed must be AUTO|OPEN|SHUT")
+            state.bleed.xbleed = v
+
+        def eng_master(i):
+            def handler(v):
+                state.eng.master[i] = bool(v) \
+                    if v is not None else not state.eng.master[i]
+            return handler
+
+        def eng_mode(v):
+            if v not in ("NORM", "IGN_START", "CRANK"):
+                raise CommandError("mode must be NORM|IGN_START|CRANK")
+            state.eng.mode = v
+
+        fwc = sim.systems.get("fwc")
+        sd = sim.systems.get("sd")
+        self._handlers.update({
+            "ovhd.bleed.xbleed": ovhd_xbleed,
+            "eng.master1": eng_master(0),
+            "eng.master2": eng_master(1),
+            "eng.mode": eng_mode,
+            "ecam.page": lambda v: sd.select_page(str(v or "")),
+            "ecam.clr": lambda v: fwc.clear_key(),
+            "ecam.rcl": lambda v: fwc.recall_key(),
+            "ecam.warning_cancel": lambda v: fwc.cancel_warning(),
+            "press.ldg_elev": lambda v: setattr(
+                state.press, "ldg_elev_ft", _num(v, -1000, 15000)),
+        })

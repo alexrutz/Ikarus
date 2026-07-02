@@ -59,6 +59,7 @@
 <main id="panel">
   <div class="display-stack">
     <canvas id="pfd"></canvas>
+    <canvas id="ewd"></canvas>
   </div>
   <div class="display-stack">
     <div id="efis-bar">
@@ -71,10 +72,33 @@
         <option>10</option><option>20</option><option selected>40</option>
         <option>80</option><option>160</option>
       </select>
+      <button id="mw" class="warn-light">MASTER WARN</button>
+      <button id="mc" class="caut-light">MASTER CAUT</button>
     </div>
     <canvas id="nd"></canvas>
+    <div id="ecam-keys">
+      <button data-page="ENG">ENG</button>
+      <button data-page="BLEED">BLEED</button>
+      <button data-page="PRESS">PRESS</button>
+      <button data-page="ELEC">ELEC</button>
+      <button data-page="HYD">HYD</button>
+      <button data-page="FUEL">FUEL</button>
+      <button data-page="APU">APU</button>
+      <button data-page="F/CTL">F/CTL</button>
+      <button data-page="CRUISE">CRUISE</button>
+      <button id="ecam-clr">CLR</button>
+      <button id="ecam-rcl">RCL</button>
+    </div>
+    <canvas id="sd"></canvas>
   </div>
-  <div id="mcdu" class="mcdu"></div>
+  <div id="side-panel">
+    <div id="side-tabs">
+      <button id="tab-mcdu" class="on">MCDU</button>
+      <button id="tab-ovhd">OVERHEAD</button>
+    </div>
+    <div id="mcdu" class="mcdu"></div>
+    <div id="ovhd" class="ovhd" hidden></div>
+  </div>
 </main>
 
 <footer id="helpbar">

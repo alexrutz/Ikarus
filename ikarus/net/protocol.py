@@ -12,13 +12,14 @@ from __future__ import annotations
 from ikarus.core.state import SimState
 from ikarus.nav import geo
 
-PROTOCOL_VERSION = 3
+PROTOCOL_VERSION = 4
 
 
 def build_snapshot(state: SimState) -> dict:
     fdm, ctl, meta = state.fdm, state.ctl, state.sim
     fcu, fma, guidance = state.fcu, state.fma, state.guidance
     radio, fms = state.radio, state.fms
+    eng, ecam = state.eng, state.ecam
     return {
         "t": "snap",
         "v": PROTOCOL_VERSION,
@@ -47,15 +48,19 @@ def build_snapshot(state: SimState) -> dict:
         },
         "eng": [
             {
-                "n1": round(e.n1, 1),
-                "n2": round(e.n2, 1),
-                "ff": round(e.fuel_flow_pph, 0),
-                "thrust": round(e.thrust_lbs, 0),
-                "running": e.running,
+                "n1": round(eng.n1[i], 1),
+                "n2": round(eng.n2[i], 1),
+                "egt": round(eng.egt_c[i]),
+                "ff": round(eng.ff_pph[i]),
+                "thrust": round(fdm.engines[i].thrust_lbs, 0),
+                "running": eng.running[i],
+                "phase": eng.phase[i],
+                "master": eng.master[i],
             }
-            for e in fdm.engines
+            for i in range(2)
         ],
-        "fuel": {"total": round(fdm.total_fuel_lbs, 0)},
+        "eng_mode": eng.mode,
+        "fuel": {"total": round(state.fuel.total_lbs, 0)},
         "ctl": {
             "flaps": ctl.flaps_setting,
             "gear": ctl.gear_down,
@@ -130,5 +135,49 @@ def build_snapshot(state: SimState) -> dict:
                 "lines": fms.mcdu_lines,
             },
         },
+        "ecam": {
+            "mw": ecam.master_warning,
+            "mc": ecam.master_caution,
+            "phase": ecam.flight_phase,
+            "alerts": [
+                {"id": a.id, "level": a.level, "lines": a.lines}
+                for a in ecam.alerts if a.id not in ecam.cleared_ids
+            ],
+            "memos": ecam.memos,
+            "sd_page": ecam.sd_page,
+            "sd_manual": bool(ecam.sd_manual_page),
+            "sd": ecam.sd_data,
+        },
+        "ovhd": {
+            "elec": {
+                "bat1": state.elec.bat1, "bat2": state.elec.bat2,
+                "ext_pwr": state.elec.ext_pwr,
+                "ext_avail": state.elec.ext_pwr_avail,
+                "gen1": state.elec.gen1, "gen2": state.elec.gen2,
+                "apu_gen": state.elec.apu_gen,
+                "ac1": state.elec.ac1, "ac2": state.elec.ac2,
+            },
+            "apu": {"master": state.apu.master, "avail": state.apu.avail,
+                    "state": state.apu.state, "n": round(state.apu.n_pct)},
+            "fuel": {"l1": state.fuel.pump_l1, "l2": state.fuel.pump_l2,
+                     "c1": state.fuel.pump_c1, "c2": state.fuel.pump_c2,
+                     "r1": state.fuel.pump_r1, "r2": state.fuel.pump_r2,
+                     "xfeed": state.fuel.xfeed},
+            "hyd": {"eng1": state.hyd.eng1_pump, "eng2": state.hyd.eng2_pump,
+                    "blue": state.hyd.blue_elec_pump,
+                    "yellow": state.hyd.yellow_elec_pump,
+                    "ptu": state.hyd.ptu_auto},
+            "bleed": {"eng1": state.bleed.eng1_bleed,
+                      "eng2": state.bleed.eng2_bleed,
+                      "apu": state.bleed.apu_bleed,
+                      "xbleed": state.bleed.xbleed,
+                      "pack1": state.bleed.pack1, "pack2": state.bleed.pack2},
+        },
+        "press": {
+            "cab_alt": round(state.press.cabin_alt_ft),
+            "cab_vs": round(state.press.cabin_vs_fpm),
+            "dp": round(state.press.delta_p_psi, 1),
+        },
+        "law": state.fctl.law,
         "sim": {"paused": meta.paused, "accel": meta.accel},
     }

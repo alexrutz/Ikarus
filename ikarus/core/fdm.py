@@ -201,8 +201,14 @@ class JsbsimAdapter:
         self._fdm.set_property_value("fcs/right-brake-cmd-norm", cmd_norm)
 
     def set_engine_running(self, engine: int, running: bool) -> None:
-        self._fdm.set_property_value(
-            f"propulsion/engine[{engine}]/set-running", 1.0 if running else 0.0)
+        if running:
+            # propulsion-level InitRunning: spools the turbine to idle
+            # (the per-engine set-running property only sets a flag)
+            self._fdm.set_property_value("propulsion/set-running",
+                                         float(engine))
+        else:
+            self._fdm.set_property_value(
+                f"propulsion/engine[{engine}]/set-running", 0.0)
 
     def set_tank_lbs(self, tank: int, lbs: float) -> None:
         self._fdm.set_property_value(

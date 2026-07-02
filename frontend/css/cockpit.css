@@ -94,10 +94,53 @@ body {
   overflow: auto;
 }
 .display-stack { display: flex; flex-direction: column; gap: 4px; }
-canvas#pfd, canvas#nd {
+canvas#pfd, canvas#nd, canvas#ewd, canvas#sd {
   background: #000;
-  max-height: 100%;
+  width: 380px !important;
+  height: 380px !important;
 }
+
+#ecam-keys { display: flex; gap: 2px; flex-wrap: wrap; }
+#ecam-keys button {
+  background: #23252c; color: var(--text); border: 1px solid #3a3d46;
+  font: inherit; font-size: 10px; padding: 3px 6px; cursor: pointer;
+}
+#ecam-keys button.on { color: var(--cyan); border-color: var(--cyan); }
+.warn-light, .caut-light {
+  font: inherit; font-size: 10px; padding: 3px 8px; cursor: pointer;
+  background: #23252c; color: #555; border: 1px solid #3a3d46;
+  margin-left: 8px;
+}
+.warn-light.active { background: #4d0000; color: var(--red); border-color: var(--red); }
+.caut-light.active { background: #4d3800; color: var(--amber); border-color: var(--amber); }
+
+#side-panel { display: flex; flex-direction: column; gap: 4px; }
+#side-tabs { display: flex; gap: 2px; }
+#side-tabs button {
+  flex: 1; background: #23252c; color: var(--text);
+  border: 1px solid #3a3d46; font: inherit; font-size: 11px;
+  padding: 4px; cursor: pointer;
+}
+#side-tabs button.on { color: var(--cyan); border-color: var(--cyan); }
+
+.ovhd { width: 330px; overflow-y: auto; max-height: 82vh; }
+.ovhd-section {
+  border: 1px solid #2a2c33; margin-bottom: 6px; padding: 4px;
+  display: flex; flex-wrap: wrap; gap: 4px;
+}
+.ovhd-section legend { font-size: 10px; color: #9aa0aa; padding: 0 4px; }
+.ovhd-btn {
+  width: 72px; height: 44px;
+  background: #16171b; color: #9aa0aa;
+  border: 1px solid #3a3d46; cursor: pointer;
+  font: inherit; font-size: 9px;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px;
+}
+.ovhd-btn em { font-style: normal; font-size: 10px; color: #666; }
+.ovhd-btn.on em { color: var(--green); }
+.ovhd-btn.on { border-color: #4a6a4a; }
+.ovhd-btn.master.on { border-color: var(--green); }
 #efis-bar {
   display: flex;
   gap: 8px;

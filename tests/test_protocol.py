@@ -13,7 +13,9 @@ def test_snapshot_shape(sim):
     sim.run_for(1)
     snap = build_snapshot(sim.state)
     assert snap["t"] == "snap"
-    assert snap["v"] == 3
+    assert snap["v"] == 4
+    for key in ("ecam", "ovhd", "press", "law"):
+        assert key in snap, f"missing snapshot section {key}"
     # keys the frontend contracts on
     for key in ("fdm", "eng", "fuel", "ctl", "fcu", "fma", "guidance", "sim"):
         assert key in snap, f"missing snapshot section {key}"

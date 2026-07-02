@@ -16,12 +16,22 @@ from ikarus.core.fdm import JsbsimAdapter
 from ikarus.core.state import SimState
 from ikarus.autoflight.control_laws import InnerLoop
 from ikarus.autoflight.system import AutoflightSystem
+from ikarus.ecam.fwc import FwcSystem
+from ikarus.ecam.sd import SdSystem
 from ikarus.fms.system import FmsSystem
 from ikarus.nav.database import NavDatabase
 from ikarus.nav.radio import RadioSystem
 from ikarus.net.commands import CommandRegistry
+from ikarus.systems.apu import ApuSystem
 from ikarus.systems.base import SystemManager
+from ikarus.systems.bleed import BleedSystem
 from ikarus.systems.controls import ControlsSystem
+from ikarus.systems.electrical import ElectricalSystem
+from ikarus.systems.engines import EngineSystem
+from ikarus.systems.flight_controls import FlightControlSystem
+from ikarus.systems.fuel import FuelSystem
+from ikarus.systems.hydraulics import HydraulicSystem
+from ikarus.systems.pressurization import PressurizationSystem
 
 TICK_S = 1.0 / config.SYSTEMS_HZ
 FDM_DT = 1.0 / config.FDM_HZ
@@ -34,11 +44,22 @@ class Sim:
         self.state.sim.situation = situation
         self.inner_loop = InnerLoop()
         self.navdb = NavDatabase()
+        # order = physical dependency chain (power -> pumps -> air -> ...)
         self.systems = SystemManager([
             ControlsSystem(),
+            ElectricalSystem(),
+            ApuSystem(),
+            HydraulicSystem(),
+            FuelSystem(),
+            BleedSystem(),
+            EngineSystem(),
+            PressurizationSystem(),
+            FlightControlSystem(),
             FmsSystem(self.navdb),
             RadioSystem(self.navdb),
             AutoflightSystem(),
+            FwcSystem(),
+            SdSystem(),
         ])
         self.systems.bind(self.state, self.adapter)
         self.commands = CommandRegistry(self)
