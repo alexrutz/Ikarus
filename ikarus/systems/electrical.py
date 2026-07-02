@@ -36,6 +36,8 @@ class ElectricalSystem(System):
         e, eng, apu, fdm = (self.state.elec, self.state.eng,
                             self.state.apu, self.state.fdm)
 
+        e.gen1_fault = self.failures.active("ELEC_GEN1")
+        e.gen2_fault = self.failures.active("ELEC_GEN2")
         gen1_on = (e.gen1 and not e.gen1_fault and eng.running[0]
                    and eng.n2[0] > GEN_MIN_N2_PCT)
         gen2_on = (e.gen2 and not e.gen2_fault and eng.running[1]
@@ -63,13 +65,18 @@ class ElectricalSystem(System):
         e.ac1_source, e.ac2_source = ac1_src, ac2_src
         e.ac1, e.ac2 = bool(ac1_src), bool(ac2_src)
 
-        # AC ESS: AC1, else AC2 (auto transfer)
-        e.ac_ess = e.ac1 or e.ac2
+        # EMER ELEC: both AC buses lost in flight -> RAT's emergency
+        # generator feeds the essential buses (RAT deployed by hyd system)
+        emer_gen = (self.state.hyd.rat_deployed
+                    and self.state.hyd.blue_press_psi > 1450)
+
+        # AC ESS: AC1, else AC2 (auto transfer), else emergency gen
+        e.ac_ess = e.ac1 or e.ac2 or emer_gen
         # DC buses follow their TRs; DC BAT from DC1/2; ESS falls to BAT
         e.dc1 = e.ac1 or e.ac2
         e.dc2 = e.ac2 or e.ac1
         e.dc_bat = e.dc1 or e.dc2 or bat_on
-        e.dc_ess = e.dc1 or e.dc2 or bat_on
+        e.dc_ess = e.dc1 or e.dc2 or emer_gen or bat_on
         e.hot1 = e.bat1_charge > 0.02
         e.hot2 = e.bat2_charge > 0.02
 

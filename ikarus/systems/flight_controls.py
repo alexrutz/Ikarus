@@ -17,11 +17,12 @@ class FlightControlSystem(System):
     def update(self, dt: float) -> None:
         fctl, e, hyd = self.state.fctl, self.state.elec, self.state.hyd
 
-        fctl.elac[0] = e.ac_ess or e.dc_ess
-        fctl.elac[1] = e.ac2 or e.dc2
-        fctl.sec[0] = e.ac_ess or e.dc_ess
-        fctl.sec[1] = e.ac2 or e.dc2
-        fctl.sec[2] = e.ac1 or e.dc1
+        fail = self.failures.active
+        fctl.elac[0] = (e.ac_ess or e.dc_ess) and not fail("ELAC1")
+        fctl.elac[1] = (e.ac2 or e.dc2) and not fail("ELAC2")
+        fctl.sec[0] = (e.ac_ess or e.dc_ess) and not fail("SEC1")
+        fctl.sec[1] = (e.ac2 or e.dc2) and not fail("SEC2")
+        fctl.sec[2] = (e.ac1 or e.dc1) and not fail("SEC3")
         fctl.fac[0] = e.ac_ess or e.dc_ess
         fctl.fac[1] = e.ac2 or e.dc2
 

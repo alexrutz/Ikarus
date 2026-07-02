@@ -51,7 +51,7 @@ async def broadcast_snapshots(app: web.Application) -> None:
         clients = app["clients"]
         if not clients:
             continue
-        payload = json.dumps(build_snapshot(sim.state))
+        payload = json.dumps(build_snapshot(sim.state, sim.failures))
         for ws in list(clients):
             try:
                 await ws.send_str(payload)

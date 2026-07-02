@@ -15,7 +15,7 @@ from ikarus.nav import geo
 PROTOCOL_VERSION = 4
 
 
-def build_snapshot(state: SimState) -> dict:
+def build_snapshot(state: SimState, failures=None) -> dict:
     fdm, ctl, meta = state.fdm, state.ctl, state.sim
     fcu, fma, guidance = state.fcu, state.fma, state.guidance
     radio, fms = state.radio, state.fms
@@ -179,5 +179,6 @@ def build_snapshot(state: SimState) -> dict:
             "dp": round(state.press.delta_p_psi, 1),
         },
         "law": state.fctl.law,
+        "failures": failures.active_ids if failures else [],
         "sim": {"paused": meta.paused, "accel": meta.accel},
     }

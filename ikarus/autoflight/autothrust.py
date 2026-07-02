@@ -56,8 +56,12 @@ class Autothrust:
         step = clamp(target - self._throttle,
                      -THROTTLE_RATE_PER_S * dt, THROTTLE_RATE_PER_S * dt)
         self._throttle += step
+        # a dead engine gets idle: the stock turbine cannot be shut down
+        # at the FDM level, so zero thrust command stands in for it (all
+        # displays/systems read the Python engine model instead)
+        running = self.state.eng.running
         for i in range(self.adapter.n_engines):
-            self.adapter.set_throttle(i, self._throttle)
+            self.adapter.set_throttle(i, self._throttle if running[i] else 0.0)
 
     @property
     def throttle(self) -> float:

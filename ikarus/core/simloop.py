@@ -28,6 +28,7 @@ from ikarus.systems.bleed import BleedSystem
 from ikarus.systems.controls import ControlsSystem
 from ikarus.systems.electrical import ElectricalSystem
 from ikarus.systems.engines import EngineSystem
+from ikarus.systems.failures import FailureManager
 from ikarus.systems.flight_controls import FlightControlSystem
 from ikarus.systems.fuel import FuelSystem
 from ikarus.systems.hydraulics import HydraulicSystem
@@ -61,7 +62,8 @@ class Sim:
             FwcSystem(),
             SdSystem(),
         ])
-        self.systems.bind(self.state, self.adapter)
+        self.failures = FailureManager()
+        self.systems.bind(self.state, self.adapter, self.failures)
         self.commands = CommandRegistry(self)
         self._apply_situation(situation)
 

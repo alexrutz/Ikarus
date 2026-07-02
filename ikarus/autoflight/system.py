@@ -23,8 +23,9 @@ class AutoflightSystem(System):
         self.outer: OuterLoops = None  # type: ignore[assignment]
         self.athr: Autothrust = None  # type: ignore[assignment]
 
-    def bind(self, state: SimState, adapter: JsbsimAdapter) -> None:
-        super().bind(state, adapter)
+    def bind(self, state: SimState, adapter: JsbsimAdapter,
+             failures) -> None:
+        super().bind(state, adapter, failures)
         self.modes = ModeLogic(state)
         self.outer = OuterLoops(state)
         self.athr = Autothrust(state, adapter)

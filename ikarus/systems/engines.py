@@ -52,12 +52,19 @@ class EngineSystem(System):
             duct = bleed.duct1_psi if i == 0 else bleed.duct2_psi
             feed = fuel.feed_ok[i]
 
+            if self.failures.active(f"ENG{i + 1}_FLAMEOUT") \
+                    and phase == "RUNNING":
+                eng.phase[i] = phase = "SHUTDOWN"
+                eng.running[i] = False
+                self.adapter.set_engine_running(i, False)
+
             if phase in ("OFF", "SHUTDOWN"):
                 self._spool_down(eng, i, dt)
                 if eng.n2[i] < 1.0:
                     eng.phase[i] = "OFF"
                 if (eng.mode == "IGN_START" and eng.master[i]
-                        and duct > START_DUCT_MIN_PSI and feed):
+                        and duct > START_DUCT_MIN_PSI and feed
+                        and not self.failures.active(f"ENG{i + 1}_FLAMEOUT")):
                     eng.phase[i] = "CRANK"
             elif phase == "CRANK":
                 eng.n2[i] = min(eng.n2[i] + CRANK_N2_PER_S * dt,

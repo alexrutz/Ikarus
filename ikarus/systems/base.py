@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 
 from ikarus.core.fdm import JsbsimAdapter
 from ikarus.core.state import SimState
+from ikarus.systems.failures import FailureManager
 
 
 class System(ABC):
@@ -22,10 +23,13 @@ class System(ABC):
     def __init__(self) -> None:
         self.state: SimState = None  # type: ignore[assignment]
         self.adapter: JsbsimAdapter = None  # type: ignore[assignment]
+        self.failures: FailureManager = None  # type: ignore[assignment]
 
-    def bind(self, state: SimState, adapter: JsbsimAdapter) -> None:
+    def bind(self, state: SimState, adapter: JsbsimAdapter,
+             failures: FailureManager) -> None:
         self.state = state
         self.adapter = adapter
+        self.failures = failures
 
     def init_situation(self, situation: str) -> None:
         """Set internal state for 'cruise', 'runway' or 'cold_dark'."""
@@ -40,9 +44,10 @@ class SystemManager:
         self.systems = systems
         self._by_name = {s.name: s for s in systems}
 
-    def bind(self, state: SimState, adapter: JsbsimAdapter) -> None:
+    def bind(self, state: SimState, adapter: JsbsimAdapter,
+             failures: FailureManager) -> None:
         for s in self.systems:
-            s.bind(state, adapter)
+            s.bind(state, adapter, failures)
 
     def init_situation(self, situation: str) -> None:
         for s in self.systems:

@@ -286,4 +286,8 @@ function drawFMA(ctx, s) {
   }
   if (s.sim.paused) text(ctx, "PAUSE", 250, 70, { size: 18, color: C.amber, bold: true });
   if (s.sim.accel > 1) text(ctx, `${s.sim.accel}x`, 250, 90, { size: 14, color: C.amber });
+  if (s.law && s.law !== "normal") {
+    text(ctx, s.law === "alternate" ? "ALTN LAW" : "DIRECT LAW",
+         250, 470, { size: 15, color: C.amber, bold: true });
+  }
 }

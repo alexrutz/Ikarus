@@ -107,7 +107,7 @@ def test_gen_failure_transfers_bus(sim):
     """In cruise, failing GEN1 moves AC1 to the cross-tie."""
     sim.run_for(1)
     assert sim.state.elec.ac1_source == "GEN1"
-    sim.state.elec.gen1_fault = True
+    sim.cmd("failure.set", "ELEC_GEN1")
     sim.run_for(1)
     e = sim.state.elec
     assert e.ac1 and e.ac1_source == "XTIE"
@@ -143,7 +143,7 @@ def test_pressurization_and_cabin_alert(sim):
 
 def test_ecam_clear_and_recall(sim):
     sim.run_for(1)
-    sim.state.elec.gen1_fault = True
+    sim.cmd("failure.set", "ELEC_GEN1")
     sim.run_for(1)
     assert sim.state.ecam.master_caution
     sim.cmd("ecam.clr")
@@ -170,7 +170,7 @@ def test_fuel_crossfeed_and_low_level(sim):
 
 def test_sd_auto_page_follows_alert(sim):
     sim.run_for(1)
-    sim.state.elec.gen1_fault = True
+    sim.cmd("failure.set", "ELEC_GEN1")
     sim.run_for(1)
     assert sim.state.ecam.sd_page == "ELEC"
     sim.cmd("ecam.page", "FUEL")   # manual selection wins

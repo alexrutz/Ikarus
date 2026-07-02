@@ -22,8 +22,10 @@ class BleedSystem(System):
     def update(self, dt: float) -> None:
         b, eng, apu = self.state.bleed, self.state.eng, self.state.apu
 
-        b.eng1_bleed_avail = eng.running[0] and eng.n2[0] > ENG_BLEED_MIN_N2
-        b.eng2_bleed_avail = eng.running[1] and eng.n2[1] > ENG_BLEED_MIN_N2
+        b.eng1_bleed_avail = (eng.running[0] and eng.n2[0] > ENG_BLEED_MIN_N2
+                              and not self.failures.active("BLEED1"))
+        b.eng2_bleed_avail = (eng.running[1] and eng.n2[1] > ENG_BLEED_MIN_N2
+                              and not self.failures.active("BLEED2"))
         src1 = ENG_BLEED_PSI if (b.eng1_bleed and b.eng1_bleed_avail) else 0.0
         src2 = ENG_BLEED_PSI if (b.eng2_bleed and b.eng2_bleed_avail) else 0.0
         apu_psi = APU_BLEED_PSI if (b.apu_bleed and apu.avail) else 0.0
@@ -43,5 +45,7 @@ class BleedSystem(System):
         b.duct1_psi += (src1 - b.duct1_psi) * min(1.0, dt / DUCT_TAU_S)
         b.duct2_psi += (src2 - b.duct2_psi) * min(1.0, dt / DUCT_TAU_S)
 
-        b.pack1_flow = b.pack1 and b.duct1_psi > 10.0
-        b.pack2_flow = b.pack2 and b.duct2_psi > 10.0
+        b.pack1_flow = (b.pack1 and b.duct1_psi > 10.0
+                        and not self.failures.active("PACK1"))
+        b.pack2_flow = (b.pack2 and b.duct2_psi > 10.0
+                        and not self.failures.active("PACK2"))

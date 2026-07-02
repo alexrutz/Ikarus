@@ -29,9 +29,26 @@ class HydraulicSystem(System):
         else:
             h.green_press_psi = h.blue_press_psi = h.yellow_press_psi = NOMINAL_PSI
 
+    RESERVOIR_DRAIN_PER_S = 1.0 / 120.0   # leak empties in ~2 minutes
+
     def update(self, dt: float) -> None:
         h, e, eng, fdm = (self.state.hyd, self.state.elec,
                           self.state.eng, self.state.fdm)
+
+        # leaks drain reservoirs; pumps become ineffective below 20%
+        for failure, attr in (("HYD_G_LEAK", "green_qty"),
+                              ("HYD_B_LEAK", "blue_qty"),
+                              ("HYD_Y_LEAK", "yellow_qty")):
+            if self.failures.active(failure):
+                setattr(h, attr, max(0.0, getattr(h, attr)
+                                     - self.RESERVOIR_DRAIN_PER_S * dt))
+
+        # RAT deploys automatically when both AC buses are lost in flight
+        if not fdm.wow and not e.ac1 and not e.ac2 \
+                and self.state.fdm.cas_kts > 100:
+            h.rat_deployed = True
+        elif fdm.wow and self.state.fdm.gs_kts < 5:
+            h.rat_deployed = False   # stowed by maintenance action
 
         g_pump = (h.eng1_pump and eng.n2[0] > PUMP_MIN_N2
                   and h.green_qty > 0.2)

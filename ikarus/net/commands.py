@@ -202,4 +202,16 @@ class CommandRegistry:
             "ecam.warning_cancel": lambda v: fwc.cancel_warning(),
             "press.ldg_elev": lambda v: setattr(
                 state.press, "ldg_elev_ft", _num(v, -1000, 15000)),
+            "failure.set": make_failure_handler(sim, True),
+            "failure.clear": make_failure_handler(sim, False),
+            "failure.clear_all": lambda v: sim.failures.clear_all(),
         })
+
+
+def make_failure_handler(sim, active: bool):
+    def handler(v):
+        try:
+            sim.failures.set(str(v), active)
+        except KeyError as e:
+            raise CommandError(str(e))
+    return handler

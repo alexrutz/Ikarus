@@ -9,6 +9,7 @@ import { renderEWD, EWD_W, EWD_H } from "./displays/ewd.js";
 import { renderSD, SD_W, SD_H } from "./displays/sd.js";
 import { buildMcdu } from "./panels/mcdu.js";
 import { buildOverhead } from "./panels/overhead.js";
+import { buildFailures } from "./panels/failures.js";
 
 const link = new SimLink(`ws://${location.host}/ws`);
 bindKeyboard(link);
@@ -25,6 +26,7 @@ const ewdCtx = setupCanvas(document.getElementById("ewd"), EWD_W, EWD_H);
 const sdCtx = setupCanvas(document.getElementById("sd"), SD_W, SD_H);
 const mcdu = buildMcdu(document.getElementById("mcdu"), link);
 const overhead = buildOverhead(document.getElementById("ovhd"), link);
+const failPanel = buildFailures(document.getElementById("fail"), link);
 
 const efis = { mode: "arc", range: 40 };
 document.getElementById("nd-mode").onchange = (e) => (efis.mode = e.target.value);
@@ -32,9 +34,11 @@ document.getElementById("nd-range").onchange = (e) => (efis.range = Number(e.tar
 
 // side panel tabs
 const tabs = { mcdu: document.getElementById("tab-mcdu"),
-               ovhd: document.getElementById("tab-ovhd") };
+               ovhd: document.getElementById("tab-ovhd"),
+               fail: document.getElementById("tab-fail") };
 const panes = { mcdu: document.getElementById("mcdu"),
-                ovhd: document.getElementById("ovhd") };
+                ovhd: document.getElementById("ovhd"),
+                fail: document.getElementById("fail") };
 for (const key of Object.keys(tabs)) {
   tabs[key].onclick = () => {
     for (const k of Object.keys(tabs)) {
@@ -124,6 +128,7 @@ function frame() {
     if (performance.now() - lastOvhdRender > 250) {
       lastOvhdRender = performance.now();
       overhead.update(s);
+      failPanel.update(s);
       mwBtn.classList.toggle("active", s.ecam.mw);
       mcBtn.classList.toggle("active", s.ecam.mc);
       const page = s.ecam.sd_page;
