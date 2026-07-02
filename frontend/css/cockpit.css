@@ -1,0 +1,84 @@
+:root {
+  --bg: #0c0d10;
+  --panel: #17181c;
+  --text: #d7dae0;
+  --green: #00d000;
+  --cyan: #00e0e0;
+  --amber: #e8a000;
+  --red: #ff2a2a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "DejaVu Sans Mono", "Menlo", monospace;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#topbar {
+  display: flex;
+  gap: 2em;
+  padding: 6px 12px;
+  background: var(--panel);
+  font-size: 14px;
+}
+#title { color: var(--cyan); font-weight: bold; }
+#conn.ok { color: var(--green); }
+#conn.warn { color: var(--amber); }
+
+#ap-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px;
+  background: var(--panel);
+  border-top: 1px solid #2a2c33;
+  border-bottom: 1px solid #2a2c33;
+}
+.ap-cell { display: flex; flex-direction: column; align-items: center; }
+.ap-cell label { font-size: 10px; color: #9aa0aa; }
+.ap-cell input {
+  width: 5.5em;
+  background: #000;
+  color: var(--cyan);
+  border: 1px solid #3a3d46;
+  font: inherit;
+  font-size: 16px;
+  text-align: center;
+  padding: 2px;
+}
+.fcu-btn {
+  background: #23252c;
+  color: var(--text);
+  border: 1px solid #3a3d46;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.fcu-btn.on { color: var(--green); border-color: var(--green); }
+
+#panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+canvas#pfd {
+  background: #000;
+  max-height: 100%;
+}
+
+#helpbar {
+  padding: 4px 12px;
+  background: var(--panel);
+  font-size: 11px;
+  color: #9aa0aa;
+}

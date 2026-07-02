@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ikarus — A320 Flight Deck</title>
+<link rel="stylesheet" href="/static/css/cockpit.css">
+</head>
+<body>
+<header id="topbar">
+  <span id="title">IKARUS A320</span>
+  <span id="conn" class="warn">CONNECTING…</span>
+  <span id="simstat"></span>
+</header>
+
+<!-- Provisional AP strip (replaced by the real FCU in M2) -->
+<div id="ap-strip">
+  <div class="ap-cell">
+    <label>SPD</label>
+    <input id="ap-spd" type="number" min="100" max="350" step="1">
+  </div>
+  <div class="ap-cell">
+    <label>HDG</label>
+    <input id="ap-hdg" type="number" min="0" max="359" step="1">
+  </div>
+  <div class="ap-cell">
+    <label>ALT</label>
+    <input id="ap-alt" type="number" min="100" max="41000" step="100">
+  </div>
+  <div class="ap-cell">
+    <label>V/S</label>
+    <input id="ap-vs" type="number" min="-6000" max="6000" step="100">
+  </div>
+  <button id="ap-btn" class="fcu-btn">AP1</button>
+  <button id="athr-btn" class="fcu-btn">A/THR</button>
+  <button id="pause-btn" class="fcu-btn">PAUSE</button>
+</div>
+
+<main id="panel">
+  <canvas id="pfd"></canvas>
+</main>
+
+<footer id="helpbar">
+  keys: ←→↑↓ stick · -/= thrust · F/V flaps · G gear · B spdbrk · SPACE ap off · P pause · [ ] time×
+</footer>
+
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
