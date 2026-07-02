@@ -57,7 +57,24 @@
 </div>
 
 <main id="panel">
-  <canvas id="pfd"></canvas>
+  <div class="display-stack">
+    <canvas id="pfd"></canvas>
+  </div>
+  <div class="display-stack">
+    <div id="efis-bar">
+      <label>ND</label>
+      <select id="nd-mode">
+        <option value="rose">ROSE</option>
+        <option value="arc" selected>ARC</option>
+      </select>
+      <select id="nd-range">
+        <option>10</option><option>20</option><option selected>40</option>
+        <option>80</option><option>160</option>
+      </select>
+    </div>
+    <canvas id="nd"></canvas>
+  </div>
+  <div id="mcdu" class="mcdu"></div>
 </main>
 
 <footer id="helpbar">

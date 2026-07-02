@@ -16,6 +16,9 @@ from ikarus.core.fdm import JsbsimAdapter
 from ikarus.core.state import SimState
 from ikarus.autoflight.control_laws import InnerLoop
 from ikarus.autoflight.system import AutoflightSystem
+from ikarus.fms.system import FmsSystem
+from ikarus.nav.database import NavDatabase
+from ikarus.nav.radio import RadioSystem
 from ikarus.net.commands import CommandRegistry
 from ikarus.systems.base import SystemManager
 from ikarus.systems.controls import ControlsSystem
@@ -30,8 +33,11 @@ class Sim:
         self.state = SimState(fdm=self.adapter.state)
         self.state.sim.situation = situation
         self.inner_loop = InnerLoop()
+        self.navdb = NavDatabase()
         self.systems = SystemManager([
             ControlsSystem(),
+            FmsSystem(self.navdb),
+            RadioSystem(self.navdb),
             AutoflightSystem(),
         ])
         self.systems.bind(self.state, self.adapter)

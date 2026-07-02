@@ -125,4 +125,11 @@ class CommandRegistry:
             "fcu.athr.toggle": lambda v: modes.athr_toggle(v),
             "fcu.fd.toggle": lambda v: setattr(
                 fcu, "fd", (not fcu.fd) if v is None else bool(v)),
+            "fcu.loc.toggle": lambda v: modes.loc_toggle(),
+            "fcu.appr.toggle": lambda v: modes.appr_toggle(),
+            "mcdu.key": lambda v: sim.systems.get("fms").mcdu.key(v or ""),
+            "radio.nav1.set": lambda v: setattr(
+                state.radio, "nav1_freq_khz", _num(v, 0, 118000)),
+            "radio.nav2.set": lambda v: setattr(
+                state.radio, "nav2_freq_khz", _num(v, 0, 118000)),
         })

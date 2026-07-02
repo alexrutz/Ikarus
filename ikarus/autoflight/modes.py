@@ -19,6 +19,11 @@ from ikarus.core.state import SimState
 ALT_CAPTURE_DECEL_FPS2 = 1.9   # capture arc steepness
 ALT_HOLD_BAND_FT = 20.0
 ALT_STAR_MIN_BAND_FT = 80.0
+NAV_CAPTURE_XTK_NM = 1.5
+LOC_CAPTURE_DOTS = 1.6
+LOC_TRACK_DOTS = 0.25
+GS_CAPTURE_DOTS = 0.8
+GS_TRACK_DOTS = 0.25
 
 
 @dataclass
@@ -31,23 +36,36 @@ class ModeEvents:
 class ModeLogic:
     def __init__(self, state: SimState):
         self.state = state
-        self.lat_active = ""       # HDG (NAV, LOC*, LOC arrive with M3)
+        self.lat_active = ""       # HDG, NAV, LOC*, LOC
         self.lat_armed = ""
-        self.vert_active = ""      # ALT, ALT*, V/S, OP CLB, OP DES
+        self.vert_active = ""      # ALT, ALT*, V/S, OP CLB/DES, CLB/DES, G/S*
         self.vert_armed = ""
         self.athr_mode = ""        # SPEED, MACH, THR CLB, THR IDLE, MAN *
+        self._alt_star_ref = 0.0   # FCU altitude when ALT* engaged
 
     # --- knob/lever actions --------------------------------------------------
 
     def hdg_pull(self) -> None:
         """Selected heading: fly the FCU heading."""
         self.state.fcu.hdg_managed = False
+        if self.lat_active in ("NAV", "LOC*", "LOC"):
+            self.lat_armed = ""
         self.lat_active = "HDG"
 
     def hdg_push(self) -> None:
-        """Managed lateral (NAV) needs a flight plan — M3. Until then
-        push behaves like pull so the FCU never dead-ends."""
-        self.hdg_pull()
+        """Managed lateral: arm/engage NAV when a flight plan exists."""
+        fms = self.state.fms
+        if not fms.legs and not fms.nav_ok:
+            self.hdg_pull()
+            return
+        self.state.fcu.hdg_managed = True
+        if fms.nav_ok and abs(fms.xtk_nm) < NAV_CAPTURE_XTK_NM:
+            self.lat_active = "NAV"
+            self.lat_armed = ""
+        else:
+            self.lat_armed = "NAV"  # HDG remains active until capture
+            if not self.lat_active:
+                self.lat_active = "HDG"
 
     def vs_pull(self) -> None:
         fcu, fdm = self.state.fcu, self.state.fdm
@@ -75,15 +93,65 @@ class ModeLogic:
         self.vert_armed = "ALT"
 
     def alt_push(self) -> None:
-        """Managed climb/descent needs the FMS (M3); open mode until then."""
-        self.alt_pull()
+        """Managed climb/descent: respects FMS constraints/profile."""
+        fcu, fdm, fms = self.state.fcu, self.state.fdm, self.state.fms
+        if not fms.nav_ok:
+            self.alt_pull()
+            return
+        if fcu.alt_ft > fdm.alt_ft + 100:
+            self.vert_active = "CLB"
+        elif fcu.alt_ft < fdm.alt_ft - 100:
+            self.vert_active = "DES"
+        else:
+            return
+        fcu.vs_fpm = None
+        self.vert_armed = "ALT"
+
+    def loc_toggle(self) -> None:
+        fcu = self.state.fcu
+        fcu.loc = not fcu.loc
+        fcu.appr = False
+        if fcu.loc:
+            if self.lat_active not in ("LOC*", "LOC"):
+                self.lat_armed = "LOC"
+        else:
+            self._clear_approach_modes()
+
+    def appr_toggle(self) -> None:
+        fcu = self.state.fcu
+        fcu.appr = not fcu.appr
+        fcu.loc = False
+        if fcu.appr:
+            if self.lat_active not in ("LOC*", "LOC"):
+                self.lat_armed = "LOC"
+            if self.vert_active not in ("G/S*", "G/S"):
+                self.vert_armed = "G/S"
+        else:
+            self._clear_approach_modes()
+
+    def _clear_approach_modes(self) -> None:
+        if self.lat_armed in ("LOC",):
+            self.lat_armed = ""
+        if self.vert_armed in ("G/S",):
+            self.vert_armed = ""
+        if self.lat_active in ("LOC*", "LOC"):
+            self.state.fcu.hdg_deg = round(self.state.fdm.hdg_true_deg) % 360
+            self.lat_active = "HDG"
+        if self.vert_active in ("G/S*", "G/S"):
+            self.state.fcu.vs_fpm = round(self.state.fdm.vs_fpm / 100) * 100
+            self.vert_active = "V/S"
 
     def spd_pull(self) -> None:
-        self.state.fcu.spd_managed = False
+        fcu, fdm = self.state.fcu, self.state.fdm
+        if fcu.spd_managed:
+            fcu.spd_kts = max(round(fdm.cas_kts), 100)
+            fcu.spd_is_mach = False
+        fcu.spd_managed = False
 
     def spd_push(self) -> None:
-        """Managed speed arrives with the FMS (M3)."""
-        self.state.fcu.spd_managed = False
+        """Managed speed: the FMS speed schedule drives the target."""
+        fms = self.state.fms
+        self.state.fcu.spd_managed = bool(fms.nav_ok or fms.legs)
 
     def ap_toggle(self, engage: bool | None = None) -> None:
         fcu = self.state.fcu
@@ -110,6 +178,14 @@ class ModeLogic:
                 self.vert_active = "V/S"
                 self._arm_alt_if_selected()
 
+    def _track_toward_course(self, course_mag: float) -> bool:
+        """LOC capture sanity: not crossing the beam near-perpendicular."""
+        from ikarus.nav import geo
+        fdm = self.state.fdm
+        course_true = (course_mag
+                       + geo.magvar_deg(fdm.lat_deg, fdm.lon_deg)) % 360.0
+        return abs(geo.angle_diff_deg(course_true, fdm.track_true_deg)) < 100.0
+
     def _arm_alt_if_selected(self) -> None:
         fcu, fdm = self.state.fcu, self.state.fdm
         vs = fcu.vs_fpm or 0.0
@@ -130,22 +206,57 @@ class ModeLogic:
         if guidance_active and not self.vert_active:
             self._sync_engagement()
 
+        # --- approach arming (continuous while the button is latched) ----------
+        fms, radio = state.fms, state.radio
+        if (fcu.loc or fcu.appr) and self.lat_active not in ("LOC*", "LOC"):
+            self.lat_armed = "LOC"
+        if fcu.appr and self.vert_active not in ("G/S*", "G/S"):
+            self.vert_armed = "G/S"
+
+        # --- lateral captures --------------------------------------------------
+        if self.lat_armed == "NAV" and fms.nav_ok \
+                and abs(fms.xtk_nm) < NAV_CAPTURE_XTK_NM:
+            self.lat_active = "NAV"
+            self.lat_armed = ""
+        if self.lat_active == "NAV" and not fms.nav_ok:
+            fcu.hdg_deg = round(fdm.hdg_true_deg) % 360
+            self.lat_active = "HDG"
+        if self.lat_armed == "LOC" and radio.ils_ok \
+                and abs(radio.ils_loc_dots) < LOC_CAPTURE_DOTS \
+                and self._track_toward_course(radio.ils_course_mag):
+            self.lat_active = "LOC*"
+            self.lat_armed = ""
+        if self.lat_active == "LOC*" and abs(radio.ils_loc_dots) < LOC_TRACK_DOTS:
+            self.lat_active = "LOC"
+
+        # G/S arms only engage after LOC capture
+        if self.vert_armed == "G/S" and radio.ils_ok \
+                and self.lat_active in ("LOC*", "LOC") \
+                and abs(radio.ils_gs_dots) < GS_CAPTURE_DOTS:
+            self.vert_active = "G/S*"
+            self.vert_armed = ""
+            fcu.vs_fpm = None
+        if self.vert_active == "G/S*" and abs(radio.ils_gs_dots) < GS_TRACK_DOTS:
+            self.vert_active = "G/S"
+
         # --- vertical captures ------------------------------------------------
         alt_err = fcu.alt_ft - fdm.alt_ft
-        if self.vert_active in ("V/S", "OP CLB", "OP DES"):
+        if self.vert_active in ("V/S", "OP CLB", "OP DES", "CLB", "DES"):
             vs_fps = abs(fdm.vs_fpm) / 60.0
             capture_band = max(ALT_STAR_MIN_BAND_FT,
                                vs_fps * vs_fps / (2 * ALT_CAPTURE_DECEL_FPS2))
             closing = alt_err * fdm.vs_fpm > 0 or abs(alt_err) < ALT_STAR_MIN_BAND_FT
             if abs(alt_err) < capture_band and closing:
                 self.vert_active = "ALT*"
-                self.vert_armed = ""
+                if self.vert_armed == "ALT":
+                    self.vert_armed = ""
                 fcu.vs_fpm = None
+                self._alt_star_ref = fcu.alt_ft
         if self.vert_active == "ALT*":
             if abs(alt_err) < ALT_HOLD_BAND_FT and abs(fdm.vs_fpm) < 200:
                 self.vert_active = "ALT"
-            elif abs(alt_err) > 1000:
-                # FCU altitude moved away during capture: revert to V/S
+            elif fcu.alt_ft != self._alt_star_ref:
+                # FCU altitude knob moved during capture: revert to V/S
                 fcu.vs_fpm = round(fdm.vs_fpm / 100) * 100
                 self.vert_active = "V/S"
                 self._arm_alt_if_selected()
@@ -160,14 +271,16 @@ class ModeLogic:
         elif not fcu.athr:
             self.athr_mode = ""
         elif detent in ("CLB", "MAN"):
-            if self.vert_active == "OP CLB":
+            if self.vert_active in ("OP CLB", "CLB"):
                 self.athr_mode = "THR CLB"
-            elif self.vert_active == "OP DES":
+            elif self.vert_active == "OP DES" or (
+                    self.vert_active == "DES" and state.fms.vdev_ft > -200):
                 self.athr_mode = "THR IDLE"
             else:
                 self.athr_mode = "MACH" if fcu.spd_is_mach else "SPEED"
         else:  # IDLE levers
-            self.athr_mode = "THR IDLE" if self.vert_active == "OP DES" else ""
+            self.athr_mode = "THR IDLE" \
+                if self.vert_active in ("OP DES", "DES") else ""
 
         self._write_fma()
 

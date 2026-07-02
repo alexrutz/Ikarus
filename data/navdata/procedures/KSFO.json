@@ -1,0 +1,49 @@
+{
+  "_comment": "Simplified sample procedures for San Francisco (not for real navigation). Navaid coordinates from OurAirports; named fixes are geographically plausible inventions.",
+  "fixes": {
+    "SENZY": [37.651, -122.451],
+    "PYE": [38.0798, -122.868],
+    "OSI": [37.3925, -122.281],
+    "ARCHI": [37.85, -122.5],
+    "AXMUL": [37.533, -122.173],
+    "SFO": [37.6195, -122.374]
+  },
+  "sids": {
+    "GAPP3": {
+      "runways": ["28L", "28R"],
+      "legs": [
+        {"fix": "SENZY", "alt_above": 2500},
+        {"fix": "PYE", "alt_above": 10000}
+      ]
+    }
+  },
+  "stars": {
+    "GOLDN2": {
+      "runways": ["28L", "28R"],
+      "legs": [
+        {"fix": "PYE"},
+        {"fix": "ARCHI", "alt_below": 10000, "speed": 250}
+      ]
+    }
+  },
+  "approaches": {
+    "ILS28L": {
+      "runway": "28L",
+      "loc_freq_khz": 111700,
+      "course_mag": 284,
+      "gs_deg": 3.0,
+      "legs": [
+        {"fix": "AXMUL", "alt_below": 3000, "speed": 180}
+      ]
+    },
+    "ILS28R": {
+      "runway": "28R",
+      "loc_freq_khz": 111100,
+      "course_mag": 284,
+      "gs_deg": 3.0,
+      "legs": [
+        {"fix": "AXMUL", "alt_below": 3000, "speed": 180}
+      ]
+    }
+  }
+}

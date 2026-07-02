@@ -10,13 +10,15 @@ frames and render smoothly at display refresh rate.
 from __future__ import annotations
 
 from ikarus.core.state import SimState
+from ikarus.nav import geo
 
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 3
 
 
 def build_snapshot(state: SimState) -> dict:
     fdm, ctl, meta = state.fdm, state.ctl, state.sim
     fcu, fma, guidance = state.fcu, state.fma, state.guidance
+    radio, fms = state.radio, state.fms
     return {
         "t": "snap",
         "v": PROTOCOL_VERSION,
@@ -37,6 +39,7 @@ def build_snapshot(state: SimState) -> dict:
             "alpha": round(fdm.alpha_deg, 2),
             "track": round(fdm.track_true_deg, 2),
             "wow": fdm.wow,
+            "magvar": round(geo.magvar_deg(fdm.lat_deg, fdm.lon_deg), 1),
             # rates for client-side dead reckoning
             "p": round(fdm.p_rps, 4),
             "q": round(fdm.q_rps, 4),
@@ -90,6 +93,42 @@ def build_snapshot(state: SimState) -> dict:
             "fd_roll": round(guidance.roll_target_deg, 2),
             "tgt_cas": round(guidance.target_cas_kts, 1),
             "law": guidance.law,
+        },
+        "radio": {
+            "nav1": {"freq": radio.nav1_freq_khz, "id": radio.nav1_ident,
+                     "brg": round(radio.nav1_bearing_mag, 1),
+                     "dme": radio.nav1_dme_nm, "ok": radio.nav1_ok},
+            "nav2": {"freq": radio.nav2_freq_khz, "id": radio.nav2_ident,
+                     "brg": round(radio.nav2_bearing_mag, 1),
+                     "dme": radio.nav2_dme_nm, "ok": radio.nav2_ok},
+            "ils": {"ok": radio.ils_ok, "id": radio.ils_ident,
+                    "crs": round(radio.ils_course_mag),
+                    "loc": round(radio.ils_loc_dots, 2),
+                    "gs": round(radio.ils_gs_dots, 2),
+                    "dme": radio.ils_dme_nm},
+        },
+        "fms": {
+            "origin": fms.origin, "dest": fms.dest,
+            "sid": fms.sid, "star": fms.star, "appr": fms.approach,
+            "dep_rwy": fms.dep_runway, "arr_rwy": fms.arr_runway,
+            "active_idx": fms.active_idx,
+            "plan_version": fms.plan_version,
+            "legs": [
+                {"id": leg.ident, "lat": round(leg.lat, 5),
+                 "lon": round(leg.lon, 5),
+                 "aa": leg.alt_above, "ab": leg.alt_below, "spd": leg.speed}
+                for leg in fms.legs
+            ],
+            "xtk": round(fms.xtk_nm, 2),
+            "crs": round(fms.course_mag),
+            "dtg": round(fms.dtg_nm, 1),
+            "dist_dest": round(fms.dist_to_dest_nm, 1),
+            "tod": round(fms.tod_dist_nm, 1),
+            "vdev": round(fms.vdev_ft),
+            "mcdu": {
+                "page": fms.mcdu_page,
+                "lines": fms.mcdu_lines,
+            },
         },
         "sim": {"paused": meta.paused, "accel": meta.accel},
     }

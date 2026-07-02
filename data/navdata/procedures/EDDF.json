@@ -1,0 +1,52 @@
+{
+  "_comment": "Simplified sample procedures for Frankfurt (not for real navigation). Navaid coordinates from OurAirports; named fixes are geographically plausible inventions.",
+  "fixes": {
+    "OBOKA": [50.017, 8.489],
+    "OBIKU": [50.0558, 8.6318],
+    "RID": [49.7817, 8.5415],
+    "FFM": [50.0537, 8.6371],
+    "CHA": [49.9211, 9.0398],
+    "DKB": [49.1428, 10.2383],
+    "PSA25": [49.5, 9.2],
+    "DF625": [49.95, 8.95],
+    "FF25L": [50.098, 8.829]
+  },
+  "sids": {
+    "RIDAR7S": {
+      "runways": ["25C", "25L", "25R"],
+      "legs": [
+        {"fix": "OBOKA", "alt_above": 2000},
+        {"fix": "RID", "alt_above": 5000}
+      ]
+    },
+    "OBIKU2E": {
+      "runways": ["07C", "07L", "07R"],
+      "legs": [
+        {"fix": "OBIKU", "alt_above": 2000},
+        {"fix": "FFM"},
+        {"fix": "CHA", "alt_above": 6000}
+      ]
+    }
+  },
+  "stars": {
+    "DKB25A": {
+      "runways": ["25L", "25R"],
+      "legs": [
+        {"fix": "DKB"},
+        {"fix": "PSA25", "alt_below": 11000, "speed": 280},
+        {"fix": "DF625", "alt_below": 5000, "speed": 220}
+      ]
+    }
+  },
+  "approaches": {
+    "ILS25L": {
+      "runway": "25L",
+      "loc_freq_khz": 111150,
+      "course_mag": 246,
+      "gs_deg": 3.0,
+      "legs": [
+        {"fix": "FF25L", "alt_below": 3800, "speed": 180}
+      ]
+    }
+  }
+}

@@ -96,6 +96,42 @@ function drawADI(ctx, f, s) {
     ctx.strokeRect(cx + side * 78 - (side > 0 ? 34 : 0), cy - 4, 34, 8);
   }
   ctx.strokeRect(cx - 4, cy - 4, 8, 8);
+
+  // ILS deviation scales (when the ILS is received)
+  if (s.radio && s.radio.ils.ok) {
+    const ils = s.radio.ils;
+    // localizer: below the ADI
+    const ly = cy + r + 16;
+    line(ctx, cx - 90, ly, cx + 90, ly, C.white, 1.5);
+    for (const d of [-2, -1, 1, 2]) {
+      ctx.beginPath();
+      ctx.arc(cx + d * 40, ly, 3, 0, 2 * Math.PI);
+      ctx.strokeStyle = C.white;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    line(ctx, cx, ly - 8, cx, ly + 8, C.yellow, 2);
+    drawDiamond(ctx, cx + Math.max(-2.2, Math.min(2.2, ils.loc)) * 40, ly, C.magenta);
+    // glideslope: right of the ADI
+    const gx = cx + r + 16;
+    line(ctx, gx, cy - 90, gx, cy + 90, C.white, 1.5);
+    for (const d of [-2, -1, 1, 2]) {
+      ctx.beginPath();
+      ctx.arc(gx, cy + d * 40, 3, 0, 2 * Math.PI);
+      ctx.strokeStyle = C.white;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+    line(ctx, gx - 8, cy, gx + 8, cy, C.yellow, 2);
+    // above path (+gs) -> diamond below center (fly down)
+    drawDiamond(ctx, gx, cy + Math.max(-2.2, Math.min(2.2, -ils.gs)) * -40, C.magenta);
+    text(ctx, ils.id, cx - r + 30, cy + r - 12, { size: 13, color: C.magenta });
+  }
+}
+
+function drawDiamond(ctx, x, y, color) {
+  poly(ctx, [[x, y - 7], [x + 7, y], [x, y + 7], [x - 7, y]],
+       { fill: color });
 }
 
 function drawSpeedTape(ctx, f, s) {

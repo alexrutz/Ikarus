@@ -24,3 +24,4 @@ include = ["ikarus*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = ["slow: long fast-time scenario flights"]

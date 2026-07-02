@@ -4,6 +4,8 @@ import { SimLink } from "./ws.js";
 import { bindKeyboard } from "./keyboard.js";
 import { setupCanvas } from "./lib/gfx.js";
 import { renderPFD, PFD_W, PFD_H } from "./displays/pfd.js";
+import { renderND, ND_W, ND_H } from "./displays/nd.js";
+import { buildMcdu } from "./panels/mcdu.js";
 
 const link = new SimLink(`ws://${location.host}/ws`);
 bindKeyboard(link);
@@ -15,6 +17,12 @@ link.onstatus = () => {
 };
 
 const pfdCtx = setupCanvas(document.getElementById("pfd"), PFD_W, PFD_H);
+const ndCtx = setupCanvas(document.getElementById("nd"), ND_W, ND_H);
+const mcdu = buildMcdu(document.getElementById("mcdu"), link);
+
+const efis = { mode: "arc", range: 40 };
+document.getElementById("nd-mode").onchange = (e) => (efis.mode = e.target.value);
+document.getElementById("nd-range").onchange = (e) => (efis.range = Number(e.target.value));
 
 // --- FCU strip -----------------------------------------------------------------
 const fields = {
@@ -68,10 +76,17 @@ function syncPanel(s) {
 const simstat = document.getElementById("simstat");
 
 // --- render loop --------------------------------------------------------------
+let lastMcduRender = "";
 function frame() {
   const s = link.view();
   if (s) {
     renderPFD(pfdCtx, s);
+    renderND(ndCtx, s, efis);
+    const mcduKey = JSON.stringify(s.fms.mcdu.lines);
+    if (mcduKey !== lastMcduRender) {
+      lastMcduRender = mcduKey;
+      mcdu.update(s.fms);
+    }
     syncPanel(s);
     simstat.textContent =
       `t=${s.time.toFixed(0)}s  GS ${s.fdm.gs.toFixed(0)}  ` +

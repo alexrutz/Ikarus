@@ -46,6 +46,8 @@ class FcuState:
     ap1: bool = False
     fd: bool = True
     athr: bool = False           # armed/active master switch
+    loc: bool = False            # LOC button latched
+    appr: bool = False           # APPR button latched (arms LOC + G/S)
 
 
 @dataclass
@@ -79,6 +81,81 @@ class GuidanceState:
 
 
 @dataclass
+class RadioState:
+    """Nav receivers (written by RadioSystem; frequencies set by commands)."""
+
+    nav1_freq_khz: float = 0.0
+    nav2_freq_khz: float = 0.0
+    nav1_ident: str = ""
+    nav1_bearing_mag: float = 0.0
+    nav1_dme_nm: float = 0.0
+    nav1_ok: bool = False
+    nav2_ident: str = ""
+    nav2_bearing_mag: float = 0.0
+    nav2_dme_nm: float = 0.0
+    nav2_ok: bool = False
+    # ILS (auto-tuned from the selected approach)
+    ils_ok: bool = False
+    ils_ident: str = ""
+    ils_course_mag: float = 0.0
+    ils_loc_dots: float = 0.0    # + = fly right
+    ils_gs_dots: float = 0.0     # + = fly up (below path)
+    ils_dme_nm: float = 0.0
+
+
+@dataclass
+class FmsLegState:
+    """One flight-plan leg as exposed to guidance and displays."""
+
+    ident: str
+    lat: float
+    lon: float
+    alt_above: float | None = None
+    alt_below: float | None = None
+    speed: float | None = None
+
+
+@dataclass
+class FmsState:
+    """Flight plan + lateral/vertical guidance data (written by FmsSystem)."""
+
+    origin: str = ""
+    dest: str = ""
+    dep_runway: str = ""
+    arr_runway: str = ""
+    sid: str = ""
+    star: str = ""
+    approach: str = ""
+    legs: list[FmsLegState] = field(default_factory=list)
+    active_idx: int = -1
+    plan_version: int = 0        # bumped on every plan change
+    # lateral guidance for NAV mode
+    xtk_nm: float = 0.0
+    course_mag: float = 0.0      # active leg course
+    dtg_nm: float = 0.0          # distance to active waypoint
+    nav_roll_cmd_deg: float = 0.0
+    nav_ok: bool = False
+    # vertical
+    dist_to_dest_nm: float = 0.0
+    tod_dist_nm: float = -1.0    # along-track distance to top-of-descent
+    managed_spd_kts: float = 280.0
+    vdev_ft: float = 0.0         # deviation from descent profile (+= high)
+    clb_constraint_ft: float | None = None  # lowest upcoming at-or-below
+    # approach geometry for the ILS receiver (from the selected approach)
+    appr_thr_lat: float = 0.0
+    appr_thr_lon: float = 0.0
+    appr_thr_elev_ft: float = 0.0
+    appr_course_mag: float = 0.0
+    appr_gs_deg: float = 3.0
+    appr_freq_khz: float = 0.0
+    appr_ident: str = ""
+    # MCDU display: 14 lines of segment lists [(text, color), ...]
+    mcdu_lines: list = field(default_factory=list)
+    mcdu_scratch: str = ""
+    mcdu_page: str = "INIT"
+
+
+@dataclass
 class SimMeta:
     time_s: float = 0.0
     paused: bool = False
@@ -93,4 +170,6 @@ class SimState:
     fcu: FcuState = field(default_factory=FcuState)
     fma: FmaState = field(default_factory=FmaState)
     guidance: GuidanceState = field(default_factory=GuidanceState)
+    radio: RadioState = field(default_factory=RadioState)
+    fms: FmsState = field(default_factory=FmsState)
     sim: SimMeta = field(default_factory=SimMeta)

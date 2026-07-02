@@ -1,0 +1,52 @@
+{
+  "_comment": "Simplified sample procedures for Munich (not for real navigation). Navaid coordinates from OurAirports; named fixes are geographically plausible inventions.",
+  "fixes": {
+    "EVIVA": [48.335, 11.68],
+    "MIQ": [48.5702, 11.5975],
+    "DKB": [49.1428, 10.2383],
+    "BETOS": [48.9, 11.3],
+    "NAPSA": [48.55, 11.55],
+    "MAG26": [48.366, 12.079],
+    "FF26L": [48.356, 11.954]
+  },
+  "sids": {
+    "GIVMI1N": {
+      "runways": ["26L", "26R"],
+      "legs": [
+        {"fix": "EVIVA", "alt_above": 2500},
+        {"fix": "MIQ", "alt_above": 5000}
+      ]
+    }
+  },
+  "stars": {
+    "DKB26L": {
+      "runways": ["26L", "26R"],
+      "legs": [
+        {"fix": "DKB"},
+        {"fix": "BETOS", "alt_below": 14000, "speed": 280},
+        {"fix": "NAPSA", "alt_below": 8000, "speed": 250},
+        {"fix": "MAG26", "alt_below": 5000, "speed": 210}
+      ]
+    }
+  },
+  "approaches": {
+    "ILS26L": {
+      "runway": "26L",
+      "loc_freq_khz": 108300,
+      "course_mag": 260,
+      "gs_deg": 3.0,
+      "legs": [
+        {"fix": "FF26L", "alt_below": 3500, "speed": 180}
+      ]
+    },
+    "ILS26R": {
+      "runway": "26R",
+      "loc_freq_khz": 108700,
+      "course_mag": 260,
+      "gs_deg": 3.0,
+      "legs": [
+        {"fix": "MAG26", "alt_below": 5000, "speed": 200}
+      ]
+    }
+  }
+}
