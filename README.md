@@ -45,7 +45,7 @@ python -m pytest
 
 - [x] M0 — JSBSim A320 adapter, property surface verified, smoke tests
 - [x] M1 — sim loop, WebSocket server, live PFD, provisional AP holds
-- [ ] M2 — FBW normal law + protections, FCU, mode logic (FMA), A/THR detents
+- [x] M2 — FBW normal law + protections, FCU, mode logic (FMA), A/THR detents
 - [ ] M3 — FMS flight plans, MCDU, navdata (OurAirports), ND, ILS approach
 - [ ] M4 — electrical/hydraulic/fuel/bleed/pressurization/APU systems, ECAM
 - [ ] M5 — failure injection, alternate/direct law, Playwright display tests

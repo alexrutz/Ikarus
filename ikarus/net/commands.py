@@ -14,9 +14,21 @@ from ikarus.autoflight.control_laws import clamp
 if TYPE_CHECKING:
     from ikarus.core.simloop import Sim
 
+THRUST_DETENTS = ("IDLE", "MAN", "CLB", "FLX", "TOGA")
+
 
 class CommandError(Exception):
     pass
+
+
+def _num(value, lo=None, hi=None) -> float:
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        raise CommandError(f"numeric value required, got {value!r}")
+    if lo is not None:
+        v = clamp(v, lo, hi)
+    return v
 
 
 class CommandRegistry:
@@ -39,17 +51,10 @@ class CommandRegistry:
         return sorted(self._handlers)
 
     def _register_defaults(self) -> None:
-        state = self._sim.state
-        ctl, ap, meta = state.ctl, state.ap, state.sim
-
-        def _num(value, lo=None, hi=None) -> float:
-            try:
-                v = float(value)
-            except (TypeError, ValueError):
-                raise CommandError(f"numeric value required, got {value!r}")
-            if lo is not None:
-                v = clamp(v, lo, hi)
-            return v
+        sim = self._sim
+        state = sim.state
+        ctl, fcu, meta = state.ctl, state.fcu, state.sim
+        modes = sim.systems.get("autoflight").modes
 
         # --- sim control ----------------------------------------------------
         def sim_pause(v):
@@ -69,31 +74,27 @@ class CommandRegistry:
         def ctl_rudder(v):
             ctl.rudder_input = clamp(ctl.rudder_input + _num(v, -1, 1), -1, 1)
 
-        def ctl_thrust(v):
-            ctl.thrust_lever = _num(v, 0, 1)
+        def ctl_thrust_detent(v):
+            if v not in THRUST_DETENTS:
+                raise CommandError(f"detent must be one of {THRUST_DETENTS}")
+            ctl.thrust_detent = v
 
-        def ctl_flaps(v):
-            ctl.flaps_setting = int(_num(v, 0, 4))
+        def ctl_thrust_manual(v):
+            ctl.thrust_manual = _num(v, 0, 1)
+            ctl.thrust_detent = "MAN"
 
-        def ctl_gear(v):
-            ctl.gear_down = bool(v)
+        # --- FCU --------------------------------------------------------------
+        def fcu_spd_set(v):
+            val = _num(v)
+            if val < 1.0:  # a Mach number
+                fcu.spd_kts = clamp(val, 0.1, 0.85)
+                fcu.spd_is_mach = True
+            else:
+                fcu.spd_kts = clamp(val, 100, 399)
+                fcu.spd_is_mach = False
 
-        def ctl_speedbrake(v):
-            ctl.speedbrake = _num(v, 0, 1)
-
-        def ctl_parking_brake(v):
-            ctl.parking_brake = bool(v)
-
-        # --- provisional autopilot (replaced by FCU commands in M2) ---------
-        def ap_toggle(v):
-            ap.ap_engaged = bool(v) if v is not None else not ap.ap_engaged
-            if ap.ap_engaged:
-                # Bumpless engagement: hold what the aircraft is doing now.
-                ap.sel_hdg_deg = round(state.fdm.hdg_true_deg)
-                ap.pitch_target_deg = state.fdm.pitch_deg
-
-        def athr_toggle(v):
-            ap.athr_engaged = bool(v) if v is not None else not ap.athr_engaged
+        def fcu_vs_set(v):
+            fcu.vs_fpm = round(_num(v, -6000, 6000) / 100) * 100
 
         self._handlers.update({
             "sim.pause": sim_pause,
@@ -101,15 +102,27 @@ class CommandRegistry:
             "ctl.pitch": ctl_pitch,
             "ctl.roll": ctl_roll,
             "ctl.rudder": ctl_rudder,
-            "ctl.thrust": ctl_thrust,
-            "ctl.flaps": ctl_flaps,
-            "ctl.gear": ctl_gear,
-            "ctl.speedbrake": ctl_speedbrake,
-            "ctl.parking_brake": ctl_parking_brake,
-            "ap.toggle": ap_toggle,
-            "athr.toggle": athr_toggle,
-            "ap.hdg.set": lambda v: setattr(ap, "sel_hdg_deg", _num(v, 0, 360) % 360),
-            "ap.alt.set": lambda v: setattr(ap, "sel_alt_ft", _num(v, 100, 41000)),
-            "ap.spd.set": lambda v: setattr(ap, "sel_spd_kts", _num(v, 100, 350)),
-            "ap.vs.set": lambda v: setattr(ap, "sel_vs_fpm", _num(v, -6000, 6000)),
+            "ctl.thrust.detent": ctl_thrust_detent,
+            "ctl.thrust.manual": ctl_thrust_manual,
+            "ctl.flaps": lambda v: setattr(ctl, "flaps_setting", int(_num(v, 0, 4))),
+            "ctl.gear": lambda v: setattr(ctl, "gear_down", bool(v)),
+            "ctl.speedbrake": lambda v: setattr(ctl, "speedbrake", _num(v, 0, 1)),
+            "ctl.parking_brake": lambda v: setattr(ctl, "parking_brake", bool(v)),
+            "fcu.spd.set": fcu_spd_set,
+            "fcu.spd.push": lambda v: modes.spd_push(),
+            "fcu.spd.pull": lambda v: modes.spd_pull(),
+            "fcu.hdg.set": lambda v: setattr(fcu, "hdg_deg", _num(v, 0, 360) % 360),
+            "fcu.hdg.push": lambda v: modes.hdg_push(),
+            "fcu.hdg.pull": lambda v: modes.hdg_pull(),
+            "fcu.alt.set": lambda v: setattr(fcu, "alt_ft",
+                                             round(_num(v, 100, 41000) / 100) * 100),
+            "fcu.alt.push": lambda v: modes.alt_push(),
+            "fcu.alt.pull": lambda v: modes.alt_pull(),
+            "fcu.vs.set": fcu_vs_set,
+            "fcu.vs.push": lambda v: modes.vs_push(),
+            "fcu.vs.pull": lambda v: modes.vs_pull(),
+            "fcu.ap1.toggle": lambda v: modes.ap_toggle(v),
+            "fcu.athr.toggle": lambda v: modes.athr_toggle(v),
+            "fcu.fd.toggle": lambda v: setattr(
+                fcu, "fd", (not fcu.fd) if v is None else bool(v)),
         })

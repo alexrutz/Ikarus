@@ -12,26 +12,47 @@
   <span id="simstat"></span>
 </header>
 
-<!-- Provisional AP strip (replaced by the real FCU in M2) -->
-<div id="ap-strip">
-  <div class="ap-cell">
-    <label>SPD</label>
-    <input id="ap-spd" type="number" min="100" max="350" step="1">
+<!-- FCU: value windows with push (managed) / pull (selected) knobs -->
+<div id="fcu-strip">
+  <div class="fcu-cell" data-ch="spd">
+    <label>SPD/MACH</label>
+    <input id="fcu-spd" type="number" min="100" max="399" step="1" title="scroll to rotate">
+    <div class="knob-row">
+      <button class="knob" data-cmd="fcu.spd.push" title="push = managed">◉</button>
+      <button class="knob" data-cmd="fcu.spd.pull" title="pull = selected">⭗</button>
+    </div>
   </div>
-  <div class="ap-cell">
+  <div class="fcu-cell" data-ch="hdg">
     <label>HDG</label>
-    <input id="ap-hdg" type="number" min="0" max="359" step="1">
+    <input id="fcu-hdg" type="number" min="0" max="359" step="1">
+    <div class="knob-row">
+      <button class="knob" data-cmd="fcu.hdg.push">◉</button>
+      <button class="knob" data-cmd="fcu.hdg.pull">⭗</button>
+    </div>
   </div>
-  <div class="ap-cell">
+  <button id="fcu-ap1" class="fcu-btn">AP1</button>
+  <button id="fcu-athr" class="fcu-btn">A/THR</button>
+  <button id="fcu-fd" class="fcu-btn">FD</button>
+  <div class="fcu-cell" data-ch="alt">
     <label>ALT</label>
-    <input id="ap-alt" type="number" min="100" max="41000" step="100">
+    <input id="fcu-alt" type="number" min="100" max="41000" step="100">
+    <div class="knob-row">
+      <button class="knob" data-cmd="fcu.alt.push">◉</button>
+      <button class="knob" data-cmd="fcu.alt.pull">⭗</button>
+    </div>
   </div>
-  <div class="ap-cell">
+  <div class="fcu-cell" data-ch="vs">
     <label>V/S</label>
-    <input id="ap-vs" type="number" min="-6000" max="6000" step="100">
+    <input id="fcu-vs" type="number" min="-6000" max="6000" step="100" placeholder="-----">
+    <div class="knob-row">
+      <button class="knob" data-cmd="fcu.vs.push" title="push = level off">◉</button>
+      <button class="knob" data-cmd="fcu.vs.pull" title="pull = V/S mode">⭗</button>
+    </div>
   </div>
-  <button id="ap-btn" class="fcu-btn">AP1</button>
-  <button id="athr-btn" class="fcu-btn">A/THR</button>
+  <div class="fcu-cell">
+    <label>THR LEVER</label>
+    <div id="detent" class="detent">CLB</div>
+  </div>
   <button id="pause-btn" class="fcu-btn">PAUSE</button>
 </div>
 
@@ -40,7 +61,7 @@
 </main>
 
 <footer id="helpbar">
-  keys: ←→↑↓ stick · -/= thrust · F/V flaps · G gear · B spdbrk · SPACE ap off · P pause · [ ] time×
+  keys: ←→↑↓ stick · 1/2/3/4 thrust IDLE/CLB/FLX/TOGA · -/= manual thrust · F/V flaps · G gear · B spdbrk · SPACE ap off · P pause · [ ] time×
 </footer>
 
 <script type="module" src="/static/js/app.js"></script>

@@ -11,11 +11,12 @@ from __future__ import annotations
 
 from ikarus.core.state import SimState
 
-PROTOCOL_VERSION = 1
+PROTOCOL_VERSION = 2
 
 
 def build_snapshot(state: SimState) -> dict:
-    fdm, ctl, ap, meta = state.fdm, state.ctl, state.ap, state.sim
+    fdm, ctl, meta = state.fdm, state.ctl, state.sim
+    fcu, fma, guidance = state.fcu, state.fma, state.guidance
     return {
         "t": "snap",
         "v": PROTOCOL_VERSION,
@@ -56,16 +57,39 @@ def build_snapshot(state: SimState) -> dict:
             "flaps": ctl.flaps_setting,
             "gear": ctl.gear_down,
             "spdbrk": round(ctl.speedbrake, 2),
-            "thrust": round(ctl.thrust_lever, 2),
+            "detent": ctl.thrust_detent,
+            "thrust_man": round(ctl.thrust_manual, 2),
             "pbrk": ctl.parking_brake,
         },
-        "ap": {
-            "ap": ap.ap_engaged,
-            "athr": ap.athr_engaged,
-            "hdg": round(ap.sel_hdg_deg),
-            "alt": round(ap.sel_alt_ft),
-            "spd": round(ap.sel_spd_kts),
-            "vs": round(ap.sel_vs_fpm),
+        "fcu": {
+            "spd": round(fcu.spd_kts, 3 if fcu.spd_is_mach else 0),
+            "spd_mach": fcu.spd_is_mach,
+            "spd_managed": fcu.spd_managed,
+            "hdg": round(fcu.hdg_deg),
+            "hdg_managed": fcu.hdg_managed,
+            "alt": round(fcu.alt_ft),
+            "vs": None if fcu.vs_fpm is None else round(fcu.vs_fpm),
+            "ap1": fcu.ap1,
+            "fd": fcu.fd,
+            "athr": fcu.athr,
+        },
+        "fma": {
+            "thr": fma.thrust,
+            "thr_man": fma.thrust_man,
+            "vert": fma.vertical,
+            "vert_armed": fma.vertical_armed,
+            "lat": fma.lateral,
+            "lat_armed": fma.lateral_armed,
+            "ap": fma.ap,
+            "fd": fma.fd,
+            "athr": fma.athr,
+            "athr_active": fma.athr_active,
+        },
+        "guidance": {
+            "fd_pitch": round(guidance.pitch_target_deg, 2),
+            "fd_roll": round(guidance.roll_target_deg, 2),
+            "tgt_cas": round(guidance.target_cas_kts, 1),
+            "law": guidance.law,
         },
         "sim": {"paused": meta.paused, "accel": meta.accel},
     }

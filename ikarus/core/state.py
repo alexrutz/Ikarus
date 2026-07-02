@@ -20,7 +20,12 @@ class ControlsState:
     pitch_input: float = 0.0     # -1..1, nose-up positive, decays to 0
     roll_input: float = 0.0      # -1..1, right positive, decays to 0
     rudder_input: float = 0.0    # -1..1, right positive, decays to 0
-    thrust_lever: float = 0.0    # 0..1 (detents arrive with M2 A/THR)
+    # Sidestick attitude targets (used when AP is off)
+    pitch_target_deg: float = 0.0
+    roll_target_deg: float = 0.0
+    # Thrust levers: a detent plus a manual position used in MAN
+    thrust_detent: str = "IDLE"  # IDLE | MAN | CLB | FLX | TOGA
+    thrust_manual: float = 0.0   # 0..1, lever position within manual range
     flaps_setting: int = 0       # 0..4 = A320 flap lever positions
     gear_down: bool = True
     speedbrake: float = 0.0      # 0..1
@@ -28,19 +33,49 @@ class ControlsState:
 
 
 @dataclass
-class AutopilotState:
-    """Provisional M1 autopilot (evolves into FCU + mode logic in M2)."""
+class FcuState:
+    """Flight Control Unit: windows, selected/managed, engagement switches."""
 
-    ap_engaged: bool = False
-    athr_engaged: bool = False
-    sel_hdg_deg: float = 90.0
-    sel_alt_ft: float = 33000.0
-    sel_spd_kts: float = 280.0
-    sel_vs_fpm: float = 0.0      # 0 = fly direct-to-altitude profile
-    # Attitude targets produced by the outer loops / manual input,
-    # consumed by the FBW inner loop every FDM step.
+    spd_kts: float = 280.0
+    spd_is_mach: bool = False
+    spd_managed: bool = False    # managed speed arrives with the FMS (M3)
+    hdg_deg: float = 90.0
+    hdg_managed: bool = False    # dashes; NAV mode arrives with M3
+    alt_ft: float = 33000.0
+    vs_fpm: float | None = None  # None = window dashed
+    ap1: bool = False
+    fd: bool = True
+    athr: bool = False           # armed/active master switch
+
+
+@dataclass
+class FmaState:
+    """Flight Mode Annunciator: five columns, rendered by the PFD."""
+
+    thrust: str = ""             # col 1 (green or white if MAN)
+    thrust_man: bool = False     # white MAN annunciation style
+    vertical: str = ""           # col 2 active (green)
+    vertical_armed: str = ""     # col 2 armed (cyan)
+    lateral: str = ""            # col 3 active (green)
+    lateral_armed: str = ""      # col 3 armed (cyan)
+    ap: str = ""                 # col 5 line 1: AP1 / ""
+    fd: str = ""                 # col 5 line 2: 1FD- style, simplified "FD"
+    athr: str = ""               # col 5 line 3: A/THR (white=active, cyan=armed)
+    athr_active: bool = False
+
+
+@dataclass
+class GuidanceState:
+    """Autoflight guidance output: targets the FBW inner loop flies.
+
+    Written only by the autoflight system. FD bars display the same
+    targets, so the flight director is this state rendered.
+    """
+
     pitch_target_deg: float = 0.0
     roll_target_deg: float = 0.0
+    target_cas_kts: float = 280.0   # resolved (mach converted) A/THR target
+    law: str = "normal"             # normal | alternate | direct (M5)
 
 
 @dataclass
@@ -55,5 +90,7 @@ class SimMeta:
 class SimState:
     fdm: FdmState
     ctl: ControlsState = field(default_factory=ControlsState)
-    ap: AutopilotState = field(default_factory=AutopilotState)
+    fcu: FcuState = field(default_factory=FcuState)
+    fma: FmaState = field(default_factory=FmaState)
+    guidance: GuidanceState = field(default_factory=GuidanceState)
     sim: SimMeta = field(default_factory=SimMeta)

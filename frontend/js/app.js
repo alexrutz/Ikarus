@@ -1,4 +1,4 @@
-// Boot: connect, size the PFD, run the render loop, wire the AP strip.
+// Boot: connect, size the PFD, run the render loop, wire the FCU strip.
 
 import { SimLink } from "./ws.js";
 import { bindKeyboard } from "./keyboard.js";
@@ -16,30 +16,52 @@ link.onstatus = () => {
 
 const pfdCtx = setupCanvas(document.getElementById("pfd"), PFD_W, PFD_H);
 
-// --- provisional AP strip ----------------------------------------------------
+// --- FCU strip -----------------------------------------------------------------
 const fields = {
-  spd: document.getElementById("ap-spd"),
-  hdg: document.getElementById("ap-hdg"),
-  alt: document.getElementById("ap-alt"),
-  vs: document.getElementById("ap-vs"),
+  spd: document.getElementById("fcu-spd"),
+  hdg: document.getElementById("fcu-hdg"),
+  alt: document.getElementById("fcu-alt"),
+  vs: document.getElementById("fcu-vs"),
 };
 for (const [key, el] of Object.entries(fields)) {
-  el.addEventListener("change", () => link.cmd(`ap.${key}.set`, Number(el.value)));
+  el.addEventListener("change", () => {
+    if (el.value !== "") link.cmd(`fcu.${key}.set`, Number(el.value));
+  });
+  // scroll wheel rotates the knob
+  el.addEventListener("wheel", (ev) => {
+    ev.preventDefault();
+    const step = key === "alt" ? 100 : key === "vs" ? 100 : 1;
+    const cur = Number(el.value || 0);
+    link.cmd(`fcu.${key}.set`, cur + (ev.deltaY < 0 ? step : -step));
+  }, { passive: false });
 }
-const apBtn = document.getElementById("ap-btn");
-const athrBtn = document.getElementById("athr-btn");
+for (const btn of document.querySelectorAll(".knob")) {
+  btn.addEventListener("click", () => link.cmd(btn.dataset.cmd));
+}
+const ap1Btn = document.getElementById("fcu-ap1");
+const athrBtn = document.getElementById("fcu-athr");
+const fdBtn = document.getElementById("fcu-fd");
 const pauseBtn = document.getElementById("pause-btn");
-apBtn.onclick = () => link.cmd("ap.toggle");
-athrBtn.onclick = () => link.cmd("athr.toggle");
+const detentEl = document.getElementById("detent");
+ap1Btn.onclick = () => link.cmd("fcu.ap1.toggle");
+athrBtn.onclick = () => link.cmd("fcu.athr.toggle");
+fdBtn.onclick = () => link.cmd("fcu.fd.toggle");
 pauseBtn.onclick = () => link.cmd("sim.pause");
 
 function syncPanel(s) {
-  for (const [key, el] of Object.entries(fields)) {
-    if (document.activeElement !== el) el.value = s.ap[key];
+  const f = s.fcu;
+  if (document.activeElement !== fields.spd) {
+    fields.spd.value = f.spd_mach ? f.spd : Math.round(f.spd);
   }
-  apBtn.classList.toggle("on", s.ap.ap);
-  athrBtn.classList.toggle("on", s.ap.athr);
+  if (document.activeElement !== fields.hdg) fields.hdg.value = f.hdg;
+  if (document.activeElement !== fields.alt) fields.alt.value = f.alt;
+  if (document.activeElement !== fields.vs) fields.vs.value = f.vs ?? "";
+  ap1Btn.classList.toggle("on", f.ap1);
+  athrBtn.classList.toggle("on", f.athr);
+  fdBtn.classList.toggle("on", f.fd);
   pauseBtn.classList.toggle("on", s.sim.paused);
+  detentEl.textContent = s.ctl.detent === "MAN"
+    ? `${Math.round(s.ctl.thrust_man * 100)}%` : s.ctl.detent;
   if (link.syncFromSnap) link.syncFromSnap(s);
 }
 
@@ -53,6 +75,7 @@ function frame() {
     syncPanel(s);
     simstat.textContent =
       `t=${s.time.toFixed(0)}s  GS ${s.fdm.gs.toFixed(0)}  ` +
+      `N1 ${s.eng[0].n1.toFixed(0)}/${s.eng[1].n1.toFixed(0)}  ` +
       `FUEL ${s.fuel.total.toFixed(0)} lbs` +
       (s.sim.paused ? "  ‖ PAUSED" : "") +
       (s.sim.accel > 1 ? `  »${s.sim.accel}x` : "");

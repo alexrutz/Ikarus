@@ -15,7 +15,7 @@ from ikarus import config
 from ikarus.core.fdm import JsbsimAdapter
 from ikarus.core.state import SimState
 from ikarus.autoflight.control_laws import InnerLoop
-from ikarus.autoflight.simple_ap import SimpleAutopilot
+from ikarus.autoflight.system import AutoflightSystem
 from ikarus.net.commands import CommandRegistry
 from ikarus.systems.base import SystemManager
 from ikarus.systems.controls import ControlsSystem
@@ -32,7 +32,7 @@ class Sim:
         self.inner_loop = InnerLoop()
         self.systems = SystemManager([
             ControlsSystem(),
-            SimpleAutopilot(),
+            AutoflightSystem(),
         ])
         self.systems.bind(self.state, self.adapter)
         self.commands = CommandRegistry(self)

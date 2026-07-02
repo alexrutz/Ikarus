@@ -17,11 +17,11 @@ export function renderPFD(ctx, s) {
   ctx.fillStyle = C.bg;
   ctx.fillRect(0, 0, PFD_W, PFD_H);
 
-  drawADI(ctx, f, s.ap);
-  drawSpeedTape(ctx, f, s.ap);
-  drawAltTape(ctx, f, s.ap);
-  drawVSI(ctx, f);
-  drawHeading(ctx, f, s.ap);
+  drawADI(ctx, f, s);
+  drawSpeedTape(ctx, f, s);
+  drawAltTape(ctx, f, s.fcu);
+  drawVSI(ctx, f, s.fcu);
+  drawHeading(ctx, f, s.fcu);
   drawFMA(ctx, s);
 
   // publish last-drawn values for Playwright assertions
@@ -31,7 +31,7 @@ export function renderPFD(ctx, s) {
   };
 }
 
-function drawADI(ctx, f, ap) {
+function drawADI(ctx, f, s) {
   const { cx, cy, r, pxPerDeg } = ADI;
   ctx.save();
   ctx.beginPath();
@@ -79,6 +79,15 @@ function drawADI(ctx, f, ap) {
   poly(ctx, [[0, -r + 14], [-7, -r + 26], [7, -r + 26]], { stroke: C.white, width: 2 });
   ctx.restore();
 
+  // flight director bars (green), offset = target - current, screen-clamped
+  if (s.fcu.fd && (s.fma.vert || s.fma.lat)) {
+    const g = s.guidance;
+    const dy = Math.max(-80, Math.min(80, -(g.fd_pitch - f.pitch) * pxPerDeg));
+    const dx = Math.max(-80, Math.min(80, (g.fd_roll - f.roll) * 1.6));
+    line(ctx, cx - 60, cy + dy, cx + 60, cy + dy, C.green, 4);
+    line(ctx, cx + dx, cy - 60, cx + dx, cy + 60, C.green, 4);
+  }
+
   // fixed aircraft symbol
   ctx.fillStyle = C.bg;
   ctx.strokeStyle = C.yellow;
@@ -89,7 +98,9 @@ function drawADI(ctx, f, ap) {
   ctx.strokeRect(cx - 4, cy - 4, 8, 8);
 }
 
-function drawSpeedTape(ctx, f, ap) {
+function drawSpeedTape(ctx, f, s) {
+  // target CAS resolved by guidance (handles the Mach window)
+  const ap = { spd: Math.round(s.guidance.tgt_cas) };
   const { x, w, top, bot, ktsPerPx } = SPD;
   const cy = (top + bot) / 2;
   ctx.fillStyle = C.gray;
@@ -161,7 +172,7 @@ function drawAltTape(ctx, f, ap) {
   }
 }
 
-function drawVSI(ctx, f) {
+function drawVSI(ctx, f, fcu) {
   const { x, top, bot } = VSI;
   const cy = (top + bot) / 2;
   ctx.fillStyle = C.gray;
@@ -217,18 +228,26 @@ function drawHeading(ctx, f, ap) {
 }
 
 function drawFMA(ctx, s) {
-  // M1 placeholder FMA: A/THR | vertical | lateral | - | AP status
-  const y = 26;
+  // Five columns: thrust | vertical | lateral | approach | AP/FD/ATHR
+  const m = s.fma;
+  const y1 = 16, y2 = 32;
   const cols = [62, 170, 278, 386, 462];
   line(ctx, 10, 48, 490, 48, C.gray, 1);
   for (const x of [116, 224, 332, 420]) line(ctx, x, 8, x, 44, C.gray, 1);
-  if (s.ap.athr) text(ctx, "SPEED", cols[0], y, { size: 15, color: C.green });
-  if (s.ap.ap) {
-    text(ctx, "V/S", cols[1], y, { size: 15, color: C.green });
-    text(ctx, "HDG", cols[2], y, { size: 15, color: C.green });
-    text(ctx, "AP1", cols[4], y - 10, { size: 13, color: C.white });
+
+  if (m.thr) {
+    text(ctx, m.thr, cols[0], y1, { size: 15, color: m.thr_man ? C.white : C.green });
   }
-  if (s.ap.athr) text(ctx, "A/THR", cols[4], y + 26, { size: 13, color: C.white });
+  if (m.vert) text(ctx, m.vert, cols[1], y1, { size: 15, color: C.green });
+  if (m.vert_armed) text(ctx, m.vert_armed, cols[1], y2, { size: 14, color: C.cyan });
+  if (m.lat) text(ctx, m.lat, cols[2], y1, { size: 15, color: C.green });
+  if (m.lat_armed) text(ctx, m.lat_armed, cols[2], y2, { size: 14, color: C.cyan });
+  if (m.ap) text(ctx, m.ap, cols[4], y1 - 4, { size: 13, color: C.white });
+  if (m.fd) text(ctx, m.fd, cols[4], y1 + 12, { size: 12, color: C.white });
+  if (m.athr) {
+    text(ctx, m.athr, cols[4], y2 + 10,
+         { size: 12, color: m.athr_active ? C.white : C.cyan });
+  }
   if (s.sim.paused) text(ctx, "PAUSE", 250, 70, { size: 18, color: C.amber, bold: true });
   if (s.sim.accel > 1) text(ctx, `${s.sim.accel}x`, 250, 90, { size: 14, color: C.amber });
 }
